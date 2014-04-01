@@ -37,6 +37,8 @@ public:
 	virtual bool canReleaseCarAtEndOfTimeStamp();
 	virtual bool releaseFrontCar();
 
+  GridDirection GetDirection();
+
 	void finishTimeStep();
 	virtual void increaseTimeStep();
 
@@ -78,6 +80,11 @@ Grid::Grid ( int gridId ): m_gridId(gridId)
 int Grid::GetNeighborId() 
 { 
 	return m_neighborGridId; 
+}
+
+GridDirection Grid::GetDirection()
+{
+  return m_direction;
 }
 
 void Grid::seedCars( int seed )
@@ -190,7 +197,6 @@ public:
 
 	bool canAcceptNewCar( GridDirection );
 	void insertCar( GridDirection );
-	bool canReleaseCarAtEndOfTimeStamp();
 	bool releaseFrontCar();
 
 	void finishTimeStep();
