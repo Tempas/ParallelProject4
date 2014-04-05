@@ -19,7 +19,8 @@ private:
 protected:
 	std::vector<bool> * m_cars;
 	int m_currentTimeStep;
-	int m_neighborGridId;
+	int m_forwardNeighborId;
+	int m_reverseNeighborId;
 	int m_numberOfCars;
 	int m_numberOfUnits;
 	int m_gridId;
@@ -27,10 +28,11 @@ protected:
 
 public:
 	Grid () {};
-	Grid ( int, int, int, int, GridDirection );
+	Grid ( int, int, int, int, int, GridDirection );
 	Grid ( int );
 
-	virtual int GetNeighborId();
+	virtual int GetForwardNeighborId();
+	virtual int GetReverseNeighborId();
 
 	virtual bool canAcceptNewCar( GridDirection );
 	virtual void insertCar( GridDirection );
@@ -53,8 +55,9 @@ class RedundantCarInsert : public std::exception
     }
 };
 
-Grid::Grid( int numberOfUnits, int numberOfCars, int gridId, int neighborGridId, GridDirection direction ): 
-		m_neighborGridId(neighborGridId), 
+Grid::Grid( int numberOfUnits, int numberOfCars, int gridId, int forwardId, int reverseId, GridDirection direction ): 
+		m_forwardNeighborId(forwardId), 
+		m_reverseNeighborId(reverseId),
 		m_numberOfCars(numberOfCars),
 		m_numberOfUnits(numberOfUnits),
 		m_direction (direction),
@@ -77,9 +80,14 @@ Grid::Grid ( int gridId ): m_gridId(gridId)
 	this->seedCars(seed);
 }
 
-int Grid::GetNeighborId() 
+int Grid::GetForwardNeighborId() 
 { 
-	return m_neighborGridId; 
+	return m_forwardNeighborId; 
+}
+
+int Grid::GetReverseNeighborId()
+{
+	return m_reverseNeighborId;
 }
 
 GridDirection Grid::GetDirection()
@@ -185,15 +193,18 @@ class StoplightGrid : public Grid {
 private:
 	int m_bottomGridId;
 	int m_rightGridId;
+	int m_topGridId;
+	int m_leftGridId;
 
 	bool m_incommingCar;
 
 	void setDirection();
-	virtual int GetNeighborId();
+	int GetForwardNeighborId();
+	int GetReverseNeighborId();
 
 public:
 	StoplightGrid(){};
-	StoplightGrid ( int, int, int );
+	StoplightGrid ( int, int, int, int, int );
 
 	bool canAcceptNewCar( GridDirection );
 	void insertCar( GridDirection );
@@ -205,14 +216,14 @@ public:
 };
 
 
-StoplightGrid::StoplightGrid ( int gridId, int rightGridId, int bottomGridId ):
-	Grid::Grid(gridId), m_rightGridId(rightGridId), m_bottomGridId(bottomGridId)
+StoplightGrid::StoplightGrid ( int gridId, int rightGridId, int bottomGridId, int topGridId, int leftGridId ):
+	Grid::Grid(gridId), m_rightGridId(rightGridId), m_bottomGridId(bottomGridId), m_leftGridId(leftGridId),m_topGridId(topGridId)
 {
 	m_incommingCar = false;
 	this->setDirection();
 }
 
-int StoplightGrid::GetNeighborId() 
+int StoplightGrid::GetForwardNeighborId()
 {
 	if (m_direction == GridDirectionRight)
 	{
@@ -221,6 +232,18 @@ int StoplightGrid::GetNeighborId()
 	else
 	{
 		return m_bottomGridId;
+	}
+}
+
+int StoplightGrid::GetReverseNeighborId()
+{
+	if (m_direction == GridDirectionRight)
+	{
+		return m_leftGridId;
+	}
+	else
+	{
+		return m_topGridId;
 	}
 }
 

@@ -136,9 +136,6 @@ int main(int argc, char **argv)
           MPI_Send(&numOfCarsToSend, 1, MPI_LONG, grid.GetNeighborId(), MpiTagSendNumberOfCars, MPI_COMM_WORLD);
         }
       }
-
-
-
     }
   }      
 
