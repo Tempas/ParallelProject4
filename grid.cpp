@@ -13,9 +13,6 @@ enum  GridDirection{GridDirectionLeft,
 
 
 class Grid {
-private:
-	void seedCars(int);
-
 protected:
 	std::vector<bool> * m_cars;
 	int m_gridId;
@@ -25,6 +22,8 @@ protected:
 	int m_reverseNeighborId;
 	int m_currentTimeStep;
 	GridDirection m_direction;
+
+	void seedCars(int);
 
 public:
 	Grid () {};
@@ -44,7 +43,7 @@ public:
 	void finishTimeStep();
 	virtual void increaseTimeStep();
 
-	void printCars();
+	virtual void printCars();
 };
 
 class RedundantCarInsert : public std::exception
@@ -179,16 +178,22 @@ void Grid::increaseTimeStep()
 
 void Grid::printCars()
 {
+	std::cout << std::endl;
+	std::cout << "Grid: " << m_gridId << std::endl;
 	int unit = 0;
 	for (auto car : *m_cars)
 	{
 		std::cout << "unit: " << unit << " car: " << car << std::endl;
 		unit++;
 	}
+
+	std::cout << std::endl;
 }
 
 
 class StoplightGrid : public Grid {
+protected:
+	int m_gridId;
 private:
 	int m_bottomGridId;
 	int m_rightGridId;
@@ -215,13 +220,21 @@ public:
 	int GetReverseNeighborId();
 	int GetOffForwardNeighborId();
 
+	void printCars();
+
 };
 
 
 StoplightGrid::StoplightGrid ( int gridId, int rightGridId, int bottomGridId, int topGridId, int leftGridId ):
-	Grid::Grid(gridId), m_rightGridId(rightGridId), m_bottomGridId(bottomGridId), m_leftGridId(leftGridId),m_topGridId(topGridId)
+	 m_rightGridId(rightGridId), m_bottomGridId(bottomGridId), m_leftGridId(leftGridId),m_topGridId(topGridId)
 {
+	m_gridId = 0;
+	m_numberOfCars = 0;
+	m_numberOfUnits = 1;
+	m_direction = GridDirectionNone;
+	m_currentTimeStep = 0;
 	m_incommingCar = false;
+	Grid::seedCars(m_gridId);
 	this->setDirection();
 }
 
@@ -239,7 +252,7 @@ int StoplightGrid::GetForwardNeighborId()
 
 int StoplightGrid::GetOffForwardNeighborId()
 {
-	if(m_direction == GridDirectionRight)
+	if (m_direction == GridDirectionRight)
 	{
 		return m_bottomGridId;
 	}
@@ -311,6 +324,21 @@ void StoplightGrid::increaseTimeStep()
 	Grid::increaseTimeStep();
 	this->setDirection();
 }
+
+void StoplightGrid::printCars()
+{
+	if (m_direction == GridDirectionRight)
+	{
+		std::cout << "Direction: Right" << std::endl;
+	}
+	else if (m_direction == GridDirectionDown)
+	{
+		std::cout << "Direction: Down" << std::endl;
+	}
+	Grid::printCars();
+}
+
+
 
 
 
