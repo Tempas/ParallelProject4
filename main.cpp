@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   MPI_Status status; 
   int comm_sz; // total procs 
   int my_rank; // my id 
-  int timesteps = 4;
+  int timesteps = 10;
   int NUMBER_OF_UNITS_PER_GRID = 5;
 
   MPI_Init(NULL, NULL);
@@ -195,6 +195,7 @@ int main(int argc, char **argv)
         if (loggingRank == my_rank)
           std::cout << "No Cars to send" << std::endl;
         numOfCarsToSend = 0;
+        MPI_Send(&buffer, 1, MPI_LONG, stopLightGrid.GetForwardNeighborId(), MpiTagRequestOpenSpot, MPI_COMM_WORLD);
       }
 
       long carsToSendOffRoute = 0;
@@ -329,6 +330,7 @@ int main(int argc, char **argv)
       }
       else
       {
+        MPI_Send(&buffer, 1, MPI_LONG, grid.GetForwardNeighborId(), MpiTagRequestOpenSpot, MPI_COMM_WORLD);
         numOfCarsToSend = 0;
       }
       if (loggingRank == my_rank)
