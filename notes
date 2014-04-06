@@ -1,0 +1,10 @@
+      if (grid.canAcceptNewCar(GridDirection::GridDirectionNone))
+      {
+        numOfCarsToSend = 1;
+      }
+      else
+      {
+        numOfCarsToSend = 0;
+      }
+
+      //what is the point of this?^
