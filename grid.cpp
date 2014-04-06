@@ -18,12 +18,12 @@ private:
 
 protected:
 	std::vector<bool> * m_cars;
-	int m_currentTimeStep;
+	int m_gridId;
+	int m_numberOfUnits;
+	int m_numberOfCars;
 	int m_forwardNeighborId;
 	int m_reverseNeighborId;
-	int m_numberOfCars;
-	int m_numberOfUnits;
-	int m_gridId;
+	int m_currentTimeStep;
 	GridDirection m_direction;
 
 public:
@@ -56,13 +56,12 @@ class RedundantCarInsert : public std::exception
 };
 
 Grid::Grid( int numberOfUnits, int numberOfCars, int gridId, int forwardId, int reverseId, GridDirection direction ): 
+		m_numberOfUnits(numberOfUnits),
+		m_numberOfCars(numberOfCars),
+		m_gridId (gridId),
 		m_forwardNeighborId(forwardId), 
 		m_reverseNeighborId(reverseId),
-		m_numberOfCars(numberOfCars),
-		m_numberOfUnits(numberOfUnits),
-		m_direction (direction),
-		m_gridId (gridId)
-
+		m_direction (direction)
 {
 	m_currentTimeStep = 0;
 	
@@ -199,19 +198,22 @@ private:
 	bool m_incommingCar;
 
 	void setDirection();
-	int GetForwardNeighborId();
-	int GetReverseNeighborId();
+
 
 public:
 	StoplightGrid(){};
 	StoplightGrid ( int, int, int, int, int );
 
 	bool canAcceptNewCar( GridDirection );
-	void insertCar( GridDirection );
+	void insertCar ();
 	bool releaseFrontCar();
 
 	void finishTimeStep();
 	void increaseTimeStep();
+
+	int GetForwardNeighborId();
+	int GetReverseNeighborId();
+	int GetOffForwardNeighborId();
 
 };
 
@@ -232,6 +234,18 @@ int StoplightGrid::GetForwardNeighborId()
 	else
 	{
 		return m_bottomGridId;
+	}
+}
+
+int StoplightGrid::GetOffForwardNeighborId()
+{
+	if(m_direction == GridDirectionRight)
+	{
+		return m_bottomGridId;
+	}
+	else
+	{
+		return m_rightGridId;
 	}
 }
 
@@ -271,17 +285,9 @@ bool StoplightGrid::canAcceptNewCar( GridDirection direction )
 	}
 }
 
-void StoplightGrid::insertCar( GridDirection direction )
+void StoplightGrid::insertCar()
 {
-	if (this->canAcceptNewCar(direction))
-	{
-		m_incommingCar = true;
-	}
-	else
-	{
-		m_incommingCar = false;
-	}
-
+	m_incommingCar = true;
 }
 
 
