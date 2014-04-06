@@ -4,10 +4,13 @@ using std::cout; using std::endl;
 #include <mpi.h>
 
 static int MpiTagEndTimeStep = 0;
-static int MpiTagBeginTimeStep = 1;
+static int MpiTagReadyBeginTimeStep = 1;
 static int MpiTagRequestOpenSpot = 2;
 static int MpiTagSendNumberOfCars = 3;
 static int MpiTagHasOpenSpot = 4;
+static int MpiTagStartingTimeStep = 5;
+static int MpiTagFinishedTimeStep = 6;
+static int MpiTagNotRequestOpenSpot = 7;
 
 
 int main(int argc, char **argv)
@@ -19,6 +22,7 @@ int main(int argc, char **argv)
   int my_rank; // my id 
   int timesteps = 4;
   int NUMBER_OF_UNITS_PER_GRID = 5;
+  int NUMBER_OF_CARS_PER_GRID = 2;
 
   MPI_Init(NULL, NULL);
   // get # of procs from communicator
@@ -42,74 +46,49 @@ int main(int argc, char **argv)
     MPI_Request request3;
     MPI_Request request4;
 
-    //std::cout <<"Stop light waiting for 4 MpiTagBeginTimeStep"<<endl;
-      MPI_Irecv(&result, 1, MPI_LONG, 1, MpiTagBeginTimeStep, MPI_COMM_WORLD, &request1);
-      MPI_Irecv(&result, 1, MPI_LONG, 2, MpiTagBeginTimeStep, MPI_COMM_WORLD, &request2);
-      MPI_Irecv(&result, 1, MPI_LONG, 3, MpiTagBeginTimeStep, MPI_COMM_WORLD,  &request3);
-      MPI_Irecv(&result, 1, MPI_LONG, 4, MpiTagBeginTimeStep, MPI_COMM_WORLD,  &request4);
-
-      while (!grid1Ready || !grid2Ready || !grid3Ready || !grid4Ready)
-      {
-        MPI_Test(&request1, &grid1Ready, NULL);
-        MPI_Test(&request2, &grid2Ready, NULL);
-        MPI_Test(&request3, &grid3Ready, NULL);
-        MPI_Test(&request4, &grid4Ready, NULL);
-      }
-
-
-      MPI_Send(&buffer, 1, MPI_LONG, 1, MpiTagBeginTimeStep, MPI_COMM_WORLD);
-      MPI_Send(&buffer, 1, MPI_LONG, 2, MpiTagBeginTimeStep, MPI_COMM_WORLD);
-      MPI_Send(&buffer, 1, MPI_LONG, 3, MpiTagBeginTimeStep, MPI_COMM_WORLD);
-      MPI_Send(&buffer, 1, MPI_LONG, 4, MpiTagBeginTimeStep, MPI_COMM_WORLD);
 
     for(int j = 0; j < timesteps; j++)
     {
-      
-      MPI_Send(&buffer, 1, MPI_LONG, 1, MpiTagBeginTimeStep, MPI_COMM_WORLD);
-      MPI_Send(&buffer, 1, MPI_LONG, 2, MpiTagBeginTimeStep, MPI_COMM_WORLD);
-      MPI_Send(&buffer, 1, MPI_LONG, 3, MpiTagBeginTimeStep, MPI_COMM_WORLD);
-      MPI_Send(&buffer, 1, MPI_LONG, 4, MpiTagBeginTimeStep, MPI_COMM_WORLD);
+            //std::cout <<"Stop light waiting for 4 MpiTagBeginTimeStep"<<endl;
+      MPI_Irecv(&result, 1, MPI_LONG, 1, MpiTagReadyBeginTimeStep, MPI_COMM_WORLD, &request1);
+      //MPI_Irecv(&result, 1, MPI_LONG, 2, MpiTagBeginTimeStep, MPI_COMM_WORLD, &request2);
+      MPI_Irecv(&result, 1, MPI_LONG, 3, MpiTagReadyBeginTimeStep, MPI_COMM_WORLD,  &request3);
+      //MPI_Irecv(&result, 1, MPI_LONG, 4, MpiTagBeginTimeStep, MPI_COMM_WORLD,  &request4);
 
-      if (loggingRank == my_rank)
+      while (!grid1Ready || !grid3Ready)
       {
-        std::cout << std::endl <<  "***beginning timestep: " << j << " on stoplight***" <<std::endl << std::endl;
-        stopLightGrid.printCars();
+        MPI_Test(&request1, &grid1Ready, NULL);        
+        MPI_Test(&request3, &grid3Ready, NULL);
       }
+
+      std::cout << std::endl <<  "***beginning timestep: " << j << " on stoplight***" <<std::endl << std::endl;
+
+       MPI_Send(&buffer, 1, MPI_LONG, 1, MpiTagStartingTimeStep, MPI_COMM_WORLD);
+       MPI_Send(&buffer, 1, MPI_LONG, 3, MpiTagStartingTimeStep, MPI_COMM_WORLD);
+
+
+      
 
       //std::cout <<"Stop light received 4 MpiTagBeginTimeSteps"<<endl;
 
 
 // ************ Recieve Open spot request ****************
       int recievedRequestFromLeft = 0;
+      int recievedRequestFromLeft2 = 0;
       int recievedRequestFromTop = 0;
 
-      MPI_Request requestTop;
       MPI_Request requestLeft;
+       MPI_Request requestLeft2;
 
 
-      MPI_Irecv(&result, 1, MPI_LONG, 2, MpiTagRequestOpenSpot, MPI_COMM_WORLD, &requestTop);
       MPI_Irecv(&result, 1, MPI_LONG, 1, MpiTagRequestOpenSpot, MPI_COMM_WORLD, &requestLeft);
 
-      while (!recievedRequestFromLeft || !recievedRequestFromTop)
+      while (!recievedRequestFromLeft )
       {
-        if (!recievedRequestFromTop)
-        {
-          MPI_Test(&requestTop, &recievedRequestFromTop, NULL);
-          if (recievedRequestFromTop)
-          {
-            if (loggingRank == my_rank)
-              std::cout << "Recieved request from top for space" << std::endl;
-            int canTakeCar = 0;
-            if (stopLightGrid.canAcceptNewCar(GridDirection::GridDirectionDown))
-            {
-              canTakeCar = 1;
-            }
-            MPI_Send(&canTakeCar, 1, MPI_LONG, 2, MpiTagHasOpenSpot, MPI_COMM_WORLD);
-          }
-        }
-
+        //std::cout << "in stop light 1" << recievedRequestFromLeft<<recievedRequestFromLeft2<<std::endl;
         if (!recievedRequestFromLeft)
         {
+
           MPI_Test(&requestLeft, &recievedRequestFromLeft, NULL);
           if (recievedRequestFromLeft)
           {
@@ -127,31 +106,15 @@ int main(int argc, char **argv)
 
 // ************ Recieve Sending Car ****************
       recievedRequestFromLeft = 0;
-      recievedRequestFromTop = 0;
 
-      long numberOfCarsFromTop;
       long numberOfCarsFromLeft;
 
-      MPI_Irecv(&numberOfCarsFromTop, 1, MPI_LONG, 2, MpiTagSendNumberOfCars, MPI_COMM_WORLD, &request1);
       MPI_Irecv(&numberOfCarsFromLeft, 1, MPI_LONG, 1, MpiTagSendNumberOfCars, MPI_COMM_WORLD, &request2);
 
-      while (!recievedRequestFromLeft || !recievedRequestFromTop)
+      while (!recievedRequestFromLeft)
       {
-        if (!recievedRequestFromTop)
-        {
-          MPI_Test(&request1, &recievedRequestFromTop, NULL);
-          if (recievedRequestFromTop)
-          {
-            if (loggingRank == my_rank)
-              std::cout << "Recieved number of cars from top for space" << std::endl;
-            
-            if (numberOfCarsFromTop == 1)
-            {
-              stopLightGrid.insertCar();
-            }
-          }
-        }
-        else if (!recievedRequestFromLeft)
+        std::cout << "in stop light 2" << std::endl;
+        if (!recievedRequestFromLeft)
         {
           MPI_Test(&request2, &recievedRequestFromLeft, NULL);
           if (recievedRequestFromLeft)
@@ -167,7 +130,7 @@ int main(int argc, char **argv)
         }
       }
 
-      long numOfCarsToSend;
+      long numOfCarsToSend = 0;
       if (stopLightGrid.canReleaseCarAtEndOfTimeStamp())
       {
         numOfCarsToSend = 0;
@@ -194,32 +157,26 @@ int main(int argc, char **argv)
       {
         if (loggingRank == my_rank)
           std::cout << "No Cars to send" << std::endl;
+        MPI_Send(&result, 1, MPI_LONG, stopLightGrid.GetForwardNeighborId(), MpiTagRequestOpenSpot, MPI_COMM_WORLD);
         numOfCarsToSend = 0;
       }
 
-      long carsToSendOffRoute = 0;
       MPI_Send(&numOfCarsToSend, 1, MPI_LONG, stopLightGrid.GetForwardNeighborId(), MpiTagSendNumberOfCars, MPI_COMM_WORLD);
-      MPI_Send(&carsToSendOffRoute, 1, MPI_LONG, stopLightGrid.GetOffForwardNeighborId(), MpiTagSendNumberOfCars, MPI_COMM_WORLD);
+      
 
       stopLightGrid.increaseTimeStep();
 
       grid1Ready = 0;
-      grid2Ready = 0;
       grid3Ready = 0;
-      grid4Ready = 0;
       MPI_Request requestGrid1;
-      MPI_Request requestGrid2;
       MPI_Request requestGrid3;
-      MPI_Request requestGrid4;
 
-      if (loggingRank == my_rank)
-        std::cout <<"Stop light waiting for all 4 grids"<<endl;
-      MPI_Irecv(&result, 1, MPI_LONG, 1, MpiTagBeginTimeStep, MPI_COMM_WORLD, &requestGrid1);
-      MPI_Irecv(&result, 1, MPI_LONG, 2, MpiTagBeginTimeStep, MPI_COMM_WORLD, &requestGrid2);
-      MPI_Irecv(&result, 1, MPI_LONG, 3, MpiTagBeginTimeStep, MPI_COMM_WORLD,  &requestGrid3);
-      MPI_Irecv(&result, 1, MPI_LONG, 4, MpiTagBeginTimeStep, MPI_COMM_WORLD,  &requestGrid4);
 
-      while (!grid1Ready || !grid2Ready || !grid3Ready || !grid4Ready)
+      std::cout <<"Stop light waiting for all grids to be done with timestep"<< j <<std::endl;
+      MPI_Irecv(&result, 1, MPI_LONG, 1, MpiTagFinishedTimeStep, MPI_COMM_WORLD, &requestGrid1);
+      MPI_Irecv(&result, 1, MPI_LONG, 3, MpiTagFinishedTimeStep, MPI_COMM_WORLD,  &requestGrid3);
+
+      while (!grid1Ready || !grid3Ready )
       {
         if (!grid1Ready)
         {
@@ -228,16 +185,6 @@ int main(int argc, char **argv)
           {
             if (loggingRank == my_rank)
               std::cout << "Grid 1 Ready for next timestep" << std::endl;
-          }
-        }
-
-        if (!grid2Ready)
-        {
-          MPI_Test(&requestGrid2, &grid2Ready, NULL);
-          if (grid2Ready)
-          {
-            if (loggingRank == my_rank)
-              std::cout << "Grid 2 Ready for next timestep" << std::endl;
           }
         }
 
@@ -250,21 +197,13 @@ int main(int argc, char **argv)
               std::cout << "Grid 3 Ready for next timestep" << std::endl;
           }
         }
-
-        if (!grid4Ready)
-        {
-          MPI_Test(&requestGrid4, &grid4Ready, NULL);
-          if (grid4Ready)
-          {
-            if (loggingRank == my_rank)
-              std::cout << "Grid 4 Ready for next timestep" << std::endl;
-          }
-        }
       }
+
+      std::cout <<"all grids are done with timestep"<< j <<std::endl;
     }   
 
   }      
-  else
+  else// grids
   {
     int forwardId;
     int reverseId;
@@ -276,38 +215,34 @@ int main(int argc, char **argv)
       reverseId = 3;
       direction = GridDirectionRight;
     }
-    else if(my_rank == 2)
-    {
-      forwardId = 0;
-      reverseId = 4;
-      direction = GridDirectionDown;
-    }
+  
     else if(my_rank == 3)
     {
       forwardId = 1;
       reverseId = 0;
       direction = GridDirectionRight;
     }
-    else if(my_rank == 4)
-    {
-      forwardId = 2;
-      reverseId = 0;
-      direction = GridDirectionDown;
-    }
 
-    Grid grid(NUMBER_OF_UNITS_PER_GRID, 4, my_rank, forwardId, reverseId, direction);
 
-    MPI_Send(&buffer, 1, MPI_LONG, 0, MpiTagBeginTimeStep, MPI_COMM_WORLD);
+    Grid grid(NUMBER_OF_UNITS_PER_GRID, NUMBER_OF_CARS_PER_GRID, my_rank, forwardId, reverseId, direction);
+
+
     //std::cout <<"Grid "<<my_rank<<" sending MpiTagBeginTimeStep"<<endl;
     
     for(int i = 0; i < timesteps; i++){
+      MPI_Send(&buffer, 1, MPI_LONG, 0, MpiTagReadyBeginTimeStep, MPI_COMM_WORLD);
+
+      if(my_rank == 2 || my_rank == 4){
+        break;
+      }
 
       if (loggingRank == my_rank)
       {
-        std::cout << "Awating to recieve next timestep" << std::endl; 
+        std::cout << "Grid "<<my_rank<<" is waiting to recieve next timestep" << std::endl; 
       }
-      MPI_Recv(&result, 1, MPI_LONG, 0, MpiTagBeginTimeStep, MPI_COMM_WORLD, &status);
-      if (loggingRank == my_rank)
+      MPI_Recv(&result, 1, MPI_LONG, 0, MpiTagStartingTimeStep, MPI_COMM_WORLD, &status);
+
+      if (loggingRank == my_rank || 3 == my_rank )
       {
         std::cout << std::endl << "***Beginning timestep: " << i << " on Grid: " << my_rank << "****" << std::endl;
         grid.printCars();
@@ -329,17 +264,20 @@ int main(int argc, char **argv)
       }
       else
       {
+        MPI_Send(&buffer, 1, MPI_LONG, grid.GetForwardNeighborId(), MpiTagRequestOpenSpot, MPI_COMM_WORLD);
         numOfCarsToSend = 0;
       }
-      if (loggingRank == my_rank)
-          std::cout << "Sending " << numOfCarsToSend << " Cars" << std::endl;
+      std::cout << "In timestep: "<<i<< std::endl;
+      std::cout << "Sending " << numOfCarsToSend << " cars  from grid"<<my_rank<< "to grid:" << grid.GetForwardNeighborId() << std::endl;
       MPI_Send(&numOfCarsToSend, 1, MPI_LONG, grid.GetForwardNeighborId(), MpiTagSendNumberOfCars, MPI_COMM_WORLD);
       grid.finishTimeStep();
 
       int recievedOpenSpotRequest = 0;
       int recievedNumCarsRequest = 0;
+      int recievedNOTOpenSpotRequest = 0;
       MPI_Request request1;
       MPI_Request request2;
+       MPI_Request request3;
 
       if (grid.canAcceptNewCar(GridDirection::GridDirectionNone))
       {
@@ -349,14 +287,14 @@ int main(int argc, char **argv)
       {
         numOfCarsToSend = 0;
       }
-
-      if (loggingRank == my_rank)
-        std::cout << "Awaiting to recieve requests from reverse neighbor" << std::endl;
+      
       MPI_Irecv(&result, 1, MPI_LONG, reverseId, MpiTagRequestOpenSpot, MPI_COMM_WORLD, &request1);
-      MPI_Irecv(&result, 1, MPI_LONG, reverseId, MpiTagSendNumberOfCars, MPI_COMM_WORLD, &request2);      
+      MPI_Irecv(&result, 1, MPI_LONG, reverseId, MpiTagSendNumberOfCars, MPI_COMM_WORLD, &request2); 
+      MPI_Irecv(&result, 1, MPI_LONG, reverseId, MpiTagNotRequestOpenSpot, MPI_COMM_WORLD, &request3);    
 
-      while (!recievedOpenSpotRequest || !recievedNumCarsRequest)
+      while (!recievedOpenSpotRequest || (!recievedNumCarsRequest))
       {
+        
         if (!recievedNumCarsRequest)
         {
           MPI_Test(&request2, &recievedNumCarsRequest, NULL);
@@ -366,7 +304,11 @@ int main(int argc, char **argv)
               std::cout << "Recieved cars" << std::endl;
             if (result == 1)
             {
+              std::cout << "cars received: "<<result<< std::endl;
               grid.insertCar(GridDirection::GridDirectionNone);
+            }
+            else{
+              std::cout << "cars received: "<<result<< std::endl;
             }
             break;
           }
@@ -382,15 +324,15 @@ int main(int argc, char **argv)
           }
         }
       }
-
+      std::cout << my_rank <<" finished timestep "<< i <<"telling stoplight now"<< std::endl;
       grid.increaseTimeStep();
-      MPI_Send(&result, 1, MPI_LONG, 0, MpiTagBeginTimeStep, MPI_COMM_WORLD);
+      MPI_Send(&result, 1, MPI_LONG, 0, MpiTagFinishedTimeStep, MPI_COMM_WORLD);
     }
   }      
-
+  std::cout << "Simulation Complete for "<< my_rank<< std::endl;
   MPI_Finalize();
 
-  std::cout << "Simulation Complete" << std::endl;
+  
 
   
 }

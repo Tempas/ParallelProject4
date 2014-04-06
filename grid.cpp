@@ -276,14 +276,9 @@ int StoplightGrid::GetReverseNeighborId()
 
 void StoplightGrid::setDirection()
 {
-	if (m_currentTimeStep % 2 == 0)
-	{
+
 		m_direction = GridDirectionRight;
-	}
-	else
-	{
-		m_direction = GridDirectionDown;
-	}
+
 }
 
 bool StoplightGrid::canAcceptNewCar( GridDirection direction )
