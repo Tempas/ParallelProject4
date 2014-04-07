@@ -40,7 +40,7 @@ public:
 
   GridDirection GetDirection();
 
-	void finishTimeStep();
+	virtual void finishTimeStep();
 	virtual void increaseTimeStep();
 
 	virtual void printCars();
@@ -308,9 +308,7 @@ bool StoplightGrid::releaseFrontCar()
 {
 	if (this->canReleaseCarAtEndOfTimeStamp())
 	{
-		(*m_cars)[0] = m_incommingCar;
-		m_numberOfCars = m_incommingCar ? 1 : 0;
-		m_incommingCar = false;
+		(*m_cars)[0] = false;
 		return true;
 	}
 	else
@@ -323,6 +321,12 @@ void StoplightGrid::increaseTimeStep()
 {
 	Grid::increaseTimeStep();
 	this->setDirection();
+}
+
+void StoplightGrid::finishTimeStep()
+{
+	(*m_cars)[0] = m_incommingCar;
+	m_incommingCar = false;
 }
 
 void StoplightGrid::printCars()

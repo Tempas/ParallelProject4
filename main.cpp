@@ -90,37 +90,38 @@ int main(int argc, char **argv)
       MPI_Irecv(&result, 1, MPI_LONG, 2, MpiTagRequestOpenSpot, MPI_COMM_WORLD, &requestTop);
       MPI_Irecv(&result, 1, MPI_LONG, 1, MpiTagRequestOpenSpot, MPI_COMM_WORLD, &requestLeft);
 
+      long canTakeTopCar = 0;
+      long canTakeLeftCar = 0;
       while (!recievedRequestFromLeft || !recievedRequestFromTop)
       {
         if (!recievedRequestFromTop)
         {
-          MPI_Test(&requestTop, &recievedRequestFromTop, NULL);
+          MPI_Test(&requestTop, &recievedRequestFromTop, &status);
           if (recievedRequestFromTop)
           {
-            if (loggingRank == my_rank)
-              std::cout << "Recieved request from top for space" << std::endl;
-            int canTakeCar = 0;
+     
             if (stopLightGrid.canAcceptNewCar(GridDirection::GridDirectionDown))
             {
-              canTakeCar = 1;
+              canTakeTopCar = 1;
             }
-            MPI_Send(&canTakeCar, 1, MPI_LONG, 2, MpiTagHasOpenSpot, MPI_COMM_WORLD);
+            if (loggingRank == my_rank)
+              std::cout << "Recieved request from top for space sending: " << canTakeTopCar << std::endl;
+            MPI_Send(&canTakeTopCar, 1, MPI_LONG, 2, MpiTagHasOpenSpot, MPI_COMM_WORLD);
           }
         }
 
         if (!recievedRequestFromLeft)
         {
-          MPI_Test(&requestLeft, &recievedRequestFromLeft, NULL);
+          MPI_Test(&requestLeft, &recievedRequestFromLeft, &status);
           if (recievedRequestFromLeft)
           {
-            if (loggingRank == my_rank)
-              std::cout << "Recieved request from Left for space" << std::endl;
-            int canTakeCar = 0;
             if (stopLightGrid.canAcceptNewCar(GridDirection::GridDirectionRight))
             {
-              canTakeCar = 1;
+              canTakeLeftCar = 1;
             }
-            MPI_Send(&canTakeCar, 1, MPI_LONG, 1, MpiTagHasOpenSpot, MPI_COMM_WORLD);
+            if (loggingRank == my_rank)
+              std::cout << "Recieved request from Left for space sending: " << canTakeLeftCar << std::endl;
+            MPI_Send(&canTakeLeftCar, 1, MPI_LONG, 1, MpiTagHasOpenSpot, MPI_COMM_WORLD);
           }
         }
       }
@@ -143,7 +144,7 @@ int main(int argc, char **argv)
           if (recievedRequestFromTop)
           {
             if (loggingRank == my_rank)
-              std::cout << "Recieved number of cars from top for space" << std::endl;
+              std::cout << "Recieved " << numberOfCarsFromTop << " cars from top for space" << std::endl;
             
             if (numberOfCarsFromTop == 1)
             {
@@ -153,11 +154,11 @@ int main(int argc, char **argv)
         }
         else if (!recievedRequestFromLeft)
         {
-          MPI_Test(&request2, &recievedRequestFromLeft, NULL);
+          MPI_Test(&request2, &recievedRequestFromLeft, &status);
           if (recievedRequestFromLeft)
           {
             if (loggingRank == my_rank)
-              std::cout << "Recieved number of cars from Left for space" << std::endl;
+              std::cout << "Recieved " << numberOfCarsFromLeft << " cars from Left for space" << std::endl;
             
             if (numberOfCarsFromLeft == 1)
             {
@@ -172,13 +173,13 @@ int main(int argc, char **argv)
       {
         numOfCarsToSend = 0;
         if (loggingRank == my_rank)
-          std::cout << "send open spot request" << std::endl;
+          std::cout << "send open spot request to Grid: " << stopLightGrid.GetForwardNeighborId() << std::endl;
         MPI_Send(&result, 1, MPI_LONG, stopLightGrid.GetForwardNeighborId(), MpiTagRequestOpenSpot, MPI_COMM_WORLD);
         MPI_Recv(&result, 1, MPI_LONG, stopLightGrid.GetForwardNeighborId(), MpiTagHasOpenSpot, MPI_COMM_WORLD, &status);
 
 
         if (loggingRank == my_rank)
-          std::cout << "Recieved has open spot request" << std::endl;
+          std::cout << "Forward grid has " << result << " spots" << std::endl;
         if (result == 1)
         {
           numOfCarsToSend = 1;
@@ -202,6 +203,7 @@ int main(int argc, char **argv)
       MPI_Send(&numOfCarsToSend, 1, MPI_LONG, stopLightGrid.GetForwardNeighborId(), MpiTagSendNumberOfCars, MPI_COMM_WORLD);
       MPI_Send(&carsToSendOffRoute, 1, MPI_LONG, stopLightGrid.GetOffForwardNeighborId(), MpiTagSendNumberOfCars, MPI_COMM_WORLD);
 
+      stopLightGrid.finishTimeStep();
       stopLightGrid.increaseTimeStep();
 
       grid1Ready = 0;
@@ -224,7 +226,7 @@ int main(int argc, char **argv)
       {
         if (!grid1Ready)
         {
-          MPI_Test(&requestGrid1, &grid1Ready, NULL);
+          MPI_Test(&requestGrid1, &grid1Ready, &status);
           if (grid1Ready)
           {
             if (loggingRank == my_rank)
@@ -234,7 +236,7 @@ int main(int argc, char **argv)
 
         if (!grid2Ready)
         {
-          MPI_Test(&requestGrid2, &grid2Ready, NULL);
+          MPI_Test(&requestGrid2, &grid2Ready, &status);
           if (grid2Ready)
           {
             if (loggingRank == my_rank)
@@ -244,7 +246,7 @@ int main(int argc, char **argv)
 
         if (!grid3Ready)
         {
-          MPI_Test(&requestGrid3, &grid3Ready, NULL);
+          MPI_Test(&requestGrid3, &grid3Ready, &status);
           if (grid3Ready)
           {
             if (loggingRank == my_rank)
@@ -254,7 +256,7 @@ int main(int argc, char **argv)
 
         if (!grid4Ready)
         {
-          MPI_Test(&requestGrid4, &grid4Ready, NULL);
+          MPI_Test(&requestGrid4, &grid4Ready, &status);
           if (grid4Ready)
           {
             if (loggingRank == my_rank)
@@ -319,11 +321,12 @@ int main(int argc, char **argv)
         if (loggingRank == my_rank)
           std::cout << "Can release car - sending request" << std::endl;
         buffer = grid.GetDirection();
+        long availableSpace;
         MPI_Send(&buffer, 1, MPI_LONG, grid.GetForwardNeighborId(), MpiTagRequestOpenSpot, MPI_COMM_WORLD);
-        MPI_Recv(&result, 1, MPI_LONG, grid.GetForwardNeighborId(), MpiTagHasOpenSpot, MPI_COMM_WORLD, &status);
+        MPI_Recv(&availableSpace, 1, MPI_LONG, grid.GetForwardNeighborId(), MpiTagHasOpenSpot, MPI_COMM_WORLD, &status);
         if (loggingRank == my_rank)
-          std::cout << "Recieved Response for open spot" << std::endl;
-        numOfCarsToSend = result;
+          std::cout << "Recieved Response for open spot: " << availableSpace << " from grid: " << grid.GetForwardNeighborId() << std::endl;
+        numOfCarsToSend = availableSpace;
         if(numOfCarsToSend == 1){
           grid.releaseFrontCar();
         }
@@ -354,19 +357,20 @@ int main(int argc, char **argv)
 
       if (loggingRank == my_rank)
         std::cout << "Awaiting to recieve requests from reverse neighbor" << std::endl;
+      long numCarsRecieved = 0;
       MPI_Irecv(&result, 1, MPI_LONG, reverseId, MpiTagRequestOpenSpot, MPI_COMM_WORLD, &request1);
-      MPI_Irecv(&result, 1, MPI_LONG, reverseId, MpiTagSendNumberOfCars, MPI_COMM_WORLD, &request2);      
+      MPI_Irecv(&numCarsRecieved, 1, MPI_LONG, reverseId, MpiTagSendNumberOfCars, MPI_COMM_WORLD, &request2);      
 
       while (!recievedOpenSpotRequest || !recievedNumCarsRequest)
       {
         if (!recievedNumCarsRequest)
         {
-          MPI_Test(&request2, &recievedNumCarsRequest, NULL);
+          MPI_Test(&request2, &recievedNumCarsRequest, &status);
           if (recievedNumCarsRequest)
           {
             if (loggingRank == my_rank)
-              std::cout << "Recieved cars" << std::endl;
-            if (result == 1)
+              std::cout << "Recieved " << numCarsRecieved << " cars" << std::endl;
+            if (numCarsRecieved == 1)
             {
               grid.insertCar(GridDirection::GridDirectionNone);
             }
@@ -375,11 +379,11 @@ int main(int argc, char **argv)
         }
         if (!recievedOpenSpotRequest)
         {
-          MPI_Test(&request1, &recievedOpenSpotRequest, NULL);
+          MPI_Test(&request1, &recievedOpenSpotRequest, &status);
           if (recievedOpenSpotRequest)
           {
             if (loggingRank == my_rank)
-              std::cout << "Recieved open spot request - sending cars" << std::endl;
+              std::cout << "Recieved open spot request - sending "<< numOfCarsToSend << " cars" << std::endl;
             MPI_Send(&numOfCarsToSend, 1, MPI_LONG, reverseId, MpiTagHasOpenSpot, MPI_COMM_WORLD);
           }
         }
