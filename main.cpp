@@ -17,8 +17,11 @@ int main(int argc, char **argv)
   MPI_Status status; 
   int comm_sz; // total procs 
   int my_rank; // my id 
-  int timesteps = 10;
-  int NUMBER_OF_UNITS_PER_GRID = 5;
+
+  int NUMBER_OF_UNITS_PER_GRID = atoi(argv[1]);
+  int NUMBER_OF_CARS_PER_GRID = atoi(argv[2]);
+  int timesteps = atoi(argv[3]);
+  int loggingRank = 1;
 
   MPI_Init(NULL, NULL);
   // get # of procs from communicator
@@ -26,8 +29,6 @@ int main(int argc, char **argv)
   // get my id from the communicator
   MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-
-  int loggingRank = atoi(argv[1]);
 
   if (my_rank == 0)
   {
@@ -280,7 +281,7 @@ int main(int argc, char **argv)
       direction = GridDirectionDown;
     }
 
-    Grid grid(NUMBER_OF_UNITS_PER_GRID, 4, my_rank, forwardId, reverseId, direction);
+    Grid grid(NUMBER_OF_UNITS_PER_GRID, NUMBER_OF_CARS_PER_GRID, my_rank, forwardId, reverseId, direction);
 
     MPI_Send(&buffer, 1, MPI_LONG, 0, MpiTagBeginTimeStep, MPI_COMM_WORLD);
     //std::cout <<"Grid "<<my_rank<<" sending MpiTagBeginTimeStep"<<endl;
