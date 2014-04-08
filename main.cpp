@@ -1,5 +1,6 @@
 #include "grid.cpp"
 #include <iostream>
+#include <chrono>
 using std::cout; using std::endl; 
 #include <mpi.h>
 
@@ -32,6 +33,7 @@ int main(int argc, char **argv)
 
   if (my_rank == 0)
   {
+    
     StoplightGrid stopLightGrid(0, 3,4, 2, 1);
 
     int grid1Ready = 0;
@@ -57,10 +59,13 @@ int main(int argc, char **argv)
         MPI_Test(&request4, &grid4Ready, NULL);
       }
 
+    //start time
+    auto t1 = std::chrono::high_resolution_clock::now();
 
     for(int j = 0; j < timesteps; j++)
     {
-      
+
+
       MPI_Send(&buffer, 1, MPI_LONG, 1, MpiTagBeginTimeStep, MPI_COMM_WORLD);
       MPI_Send(&buffer, 1, MPI_LONG, 2, MpiTagBeginTimeStep, MPI_COMM_WORLD);
       MPI_Send(&buffer, 1, MPI_LONG, 3, MpiTagBeginTimeStep, MPI_COMM_WORLD);
@@ -247,8 +252,14 @@ int main(int argc, char **argv)
           }
         }
       }
+      if(j == timesteps-1)
+      {
+        auto t2 = std::chrono::high_resolution_clock::now();
+        std::cout << "Traffic simulation took "
+        << std::chrono::duration_cast<std::chrono::microseconds>(t2-t1).count()
+        << " microseconds\n";
+      }
     }   
-
   }      
   else
   {
