@@ -94,7 +94,6 @@ int main(int argc, char **argv)
           MPI_Test(&requestTop, &recievedRequestFromTop, &status);
           if (recievedRequestFromTop)
           {
-     
             if (stopLightGrid.canAcceptNewCar(GridDirection::GridDirectionDown))
             {
               canTakeTopCar = 1;
@@ -169,13 +168,13 @@ int main(int argc, char **argv)
         std::cout << "send open spot request to Grid: " << stopLightGrid.GetForwardNeighborId() << std::endl;
       MPI_Send(&result, 1, MPI_LONG, stopLightGrid.GetForwardNeighborId(), MpiTagRequestOpenSpot, MPI_COMM_WORLD);
       if (loggingRank == my_rank) std::cout << "sent, waiting for open spot request from "<<stopLightGrid.GetForwardNeighborId() << std::endl;
-      MPI_Recv(&result, 1, MPI_LONG, stopLightGrid.GetForwardNeighborId(), MpiTagHasOpenSpot, MPI_COMM_WORLD, &status);
+      //MPI_Recv(&result, 1, MPI_LONG, stopLightGrid.GetForwardNeighborId(), MpiTagHasOpenSpot, MPI_COMM_WORLD, &status);
       if (loggingRank == my_rank) std::cout << "got it"<<std::endl;
 
       if (loggingRank == my_rank)
         std::cout << "Forward grid has " << result << " spots" << std::endl;
       
-      if (result == 1 && stopLightGrid.canReleaseCarAtEndOfTimeStamp())
+      if (stopLightGrid.canReleaseCarAtEndOfTimeStamp())
       {
         numOfCarsToSend = 1;
         stopLightGrid.releaseFrontCar();

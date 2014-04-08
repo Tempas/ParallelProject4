@@ -200,7 +200,8 @@ private:
 	int m_topGridId;
 	int m_leftGridId;
 
-	bool m_incommingCar;
+	bool m_bottomGoingCar;
+  bool m_rightGoingCar;
 
 	void setDirection();
 
@@ -212,8 +213,9 @@ public:
 	bool canAcceptNewCar( GridDirection );
 	void insertCar ();
 	bool releaseFrontCar();
+  bool HasBottomGoingCar();
+  bool HasRightGoingCar();
 
-	void finishTimeStep();
 	void increaseTimeStep();
 
 	int GetForwardNeighborId();
@@ -233,7 +235,6 @@ StoplightGrid::StoplightGrid ( int gridId, int rightGridId, int bottomGridId, in
 	m_numberOfUnits = 1;
 	m_direction = GridDirectionNone;
 	m_currentTimeStep = 0;
-	m_incommingCar = false;
 	Grid::seedCars(m_gridId);
 	this->setDirection();
 }
@@ -278,11 +279,11 @@ void StoplightGrid::setDirection()
 {
 	if (m_currentTimeStep % 2 == 0)
 	{
-		m_direction = GridDirectionRight;
+		m_direction = GridDirectionDown;
 	}
 	else
 	{
-		m_direction = GridDirectionRight;
+    m_direction = GridDirectionRight;
 	}
 }
 
@@ -300,35 +301,23 @@ bool StoplightGrid::canAcceptNewCar( GridDirection direction )
 
 void StoplightGrid::insertCar()
 {
-	m_incommingCar = true;
+	(*m_cars)[0] = true;
 }
 
 
 bool StoplightGrid::releaseFrontCar()
 {
-	if (this->canReleaseCarAtEndOfTimeStamp())
-	{
-		(*m_cars)[0] = false;
-    (*m_cars)[0] = m_incommingCar;
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+	(*m_cars)[0] = false;
+  return true;
 }
 
 void StoplightGrid::increaseTimeStep()
 {
 	Grid::increaseTimeStep();
 	this->setDirection();
+  (*m_cars)[0] = false;
 }
 
-void StoplightGrid::finishTimeStep()
-{
-	(*m_cars)[0] = m_incommingCar;
-	m_incommingCar = false;
-}
 
 void StoplightGrid::printCars()
 {
