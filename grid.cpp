@@ -282,7 +282,7 @@ void StoplightGrid::setDirection()
 	}
 	else
 	{
-		m_direction = GridDirectionDown;
+		m_direction = GridDirectionRight;
 	}
 }
 
@@ -309,6 +309,7 @@ bool StoplightGrid::releaseFrontCar()
 	if (this->canReleaseCarAtEndOfTimeStamp())
 	{
 		(*m_cars)[0] = false;
+    (*m_cars)[0] = m_incommingCar;
 		return true;
 	}
 	else
